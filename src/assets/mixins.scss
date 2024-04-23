@@ -1,0 +1,13 @@
+@mixin m {
+    @media screen and (max-width: 900px) {
+        @content;
+    }
+}
+
+@mixin d {
+    @media screen and (min-width: 901px) {
+        @content;
+    }
+}
+
+/* The End */

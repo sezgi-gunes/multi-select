@@ -1,0 +1,58 @@
+@import "./mixins.scss";
+
+@include m {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+@include d {
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+html {
+    font-size: 100px;
+
+    @include m {
+        font-size: 26.66666vw;
+    }
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-size: 0 !important;
+    background-color: #f9f9f9;
+
+    @include m {
+        background-color: #fff;
+    }
+}
+
+.container {
+    position: relative;
+    width: 16.72rem;
+    max-width: 100%;
+    padding-left: 0.36rem;
+    padding-right: 0.36rem;
+    margin-left: auto;
+    margin-right: auto;
+
+    @include m {
+        padding-left: 0.24rem;
+        padding-right: 0.24rem;
+    }
+}
+
+/* The End */
