@@ -116,7 +116,7 @@
 
             .placeholder {
                 font-weight: 500;
-                font-size: 0.16rem;
+                font-size: 0.14rem;
                 color: #666;
             }
         }
@@ -157,7 +157,7 @@
                 background-color: #e2e8f0;
             }
 
-            & + .multi-select-item {
+            &+.multi-select-item {
                 border-top: 1px solid gray;
             }
 
@@ -229,6 +229,10 @@
         }
     }
 
+    &.active {
+        z-index: 999;
+    }
+
     &:not(.active) {
         .multi-select-input {
             &::before {
@@ -246,6 +250,7 @@
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }

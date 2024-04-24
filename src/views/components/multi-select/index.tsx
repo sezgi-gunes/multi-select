@@ -1,6 +1,7 @@
 "use client"
-import { useEffect, useRef, useState, KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, UIEvent, KeyboardEvent } from 'react'
 import './style.scss'
+import { htmlThicken } from '@/helpers/global'
 
 type Data = {
     items: any[],
@@ -42,6 +43,7 @@ type Props = {
 
 /** Customizable multi-select component for generic uses. */
 const MultiSelect = (props: Props) => {
+    const ref = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [data, setData] = useState<Data>({ items: [] });
     const [loading, setLoading] = useState(false);
@@ -49,19 +51,6 @@ const MultiSelect = (props: Props) => {
     const [page, setPage] = useState(1);
     const [keyword, setKeyword] = useState("");
     const [selectedItems, setSelectedItems] = useState<{ label: string, value: any }[]>([]);
-
-    const onItemClick = (item: any) => {
-        if (selectedItems.some(x => x.value == item[props.modelKeys.value])) {
-            setSelectedItems((current) => current.filter(x => x.value != item[props.modelKeys.value]));
-        }
-        else {
-            setSelectedItems((current) => {
-                current.push({ label: item[props.modelKeys.label], value: item[props.modelKeys.value] });
-
-                return [...current];
-            });
-        }
-    }
 
     const onKeyDown = async (e: KeyboardEvent<HTMLDivElement>) => {
         let newKeyword;
@@ -71,6 +60,9 @@ const MultiSelect = (props: Props) => {
         }
         else if (e.key == "Backspace") {
             newKeyword = keyword.substring(0, keyword.length - 1);
+        }
+        else if (e.key == "Escape") {
+            setIsActive(false);
         }
 
         if (typeof (newKeyword) != "undefined") {
@@ -83,18 +75,26 @@ const MultiSelect = (props: Props) => {
         }
     }
 
-    const thicken = (text: string) => {
-        if (props.enableSearch && keyword.length > 0) {
-            const index = text.toLowerCase().indexOf(keyword.toLowerCase());
+    const onScrollDropdown = async (e: UIEvent<HTMLDivElement>) => {
+        const elem = e.target as HTMLDivElement;
 
-            if (index != -1) {
-                const source = text.substring(index, index + keyword.length);
-
-                return text.replace(source, "<b>" + source + "</b>");
-            }
+        if (elem.offsetHeight + elem.scrollTop >= elem.scrollHeight) {
+            setPage(page + 1);
+            get(page + 1);
         }
+    }
 
-        return text;
+    const onClickItem = (item: any) => {
+        if (selectedItems.some(x => x.value == item[props.modelKeys.value])) {
+            setSelectedItems((current) => current.filter(x => x.value != item[props.modelKeys.value]));
+        }
+        else {
+            setSelectedItems((current) => {
+                current.push({ label: item[props.modelKeys.label], value: item[props.modelKeys.value] });
+
+                return [...current];
+            });
+        }
     }
 
     const get = async (targetPage: number) => {
@@ -116,7 +116,7 @@ const MultiSelect = (props: Props) => {
         const globalClickHandler = (e: MouseEvent) => {
             const elem = e.target as HTMLElement;
 
-            if (!elem.className.includes("multi-select") && !elem.closest(".multi-select")) {
+            if (elem != ref.current && !ref.current?.contains(elem)) {
                 setIsActive(false);
             }
         }
@@ -135,7 +135,7 @@ const MultiSelect = (props: Props) => {
     }, [selectedItems]);
 
     return (
-        <div className={'multi-select' + (isActive ? " active" : "")} onKeyDown={onKeyDown}>
+        <div ref={ref} className={'multi-select' + (isActive ? " active" : "")} onKeyDown={props.enableSearch ? onKeyDown : undefined}>
             <div className={'multi-select-input' + (loading ? " loading" : "")} onClick={() => { setIsActive(!isActive); }} tabIndex={0} onKeyDown={(e) => { e.key == "Enter" && setIsActive(!isActive); }}>
                 <div className='multi-select-selected-items'>
                     {selectedItems.map(item =>
@@ -145,8 +145,8 @@ const MultiSelect = (props: Props) => {
                             </div>
                             <button tabIndex={0}
                                 className='multi-select-selected-item-remove'
-                                onClick={(e) => { e.stopPropagation(); setSelectedItems((current) => current.filter(x => x.value != item.value)); }}
-                                onKeyDown={(e) => { e.stopPropagation(); (e.key == "Enter") && setSelectedItems((current) => current.filter(x => x.value != item.value)); }}
+                                onClick={(e) => { e.stopPropagation(); setTimeout(() => { setSelectedItems((current) => current.filter(x => x.value != item.value)) }); }}
+                                onKeyDown={(e) => { (e.key != "Escape") && e.stopPropagation(); (e.key == "Enter") && setSelectedItems((current) => current.filter(x => x.value != item.value)); }}
                             />
                         </div>
                     )}
@@ -156,27 +156,20 @@ const MultiSelect = (props: Props) => {
                     }
                 </div>
             </div>
-            <div ref={dropdownRef} className='multi-select-dropdown' onScroll={async (e) => {
-                const elem = e.target as HTMLDivElement;
-
-                if (elem.offsetHeight + elem.scrollTop >= elem.scrollHeight) {
-                    setPage(page + 1);
-                    get(page + 1);
-                }
-            }}>
+            <div ref={dropdownRef} className='multi-select-dropdown' onScroll={props.enablePagination ? onScrollDropdown : undefined}>
                 {data.items.map(item =>
                     <div
                         key={item[props.modelKeys.value]}
                         className={'multi-select-item' + (selectedItems.some(x => x.value == item[props.modelKeys.value]) ? " selected" : "")}
-                        onClick={() => { onItemClick(item) }}
-                        onKeyDown={(e) => { (e.key == "Enter") && onItemClick(item); }}
+                        onClick={() => { onClickItem(item) }}
+                        onKeyDown={(e) => { (e.key == "Enter") && onClickItem(item); }}
                         tabIndex={0}
                     >
                         {props.modelKeys.image && item[props.modelKeys.image] &&
                             <img src={item[props.modelKeys.image]} alt={item[props.modelKeys.label]} />
                         }
                         <div className='multi-select-item-details'>
-                            <div className='multi-select-item-label' dangerouslySetInnerHTML={{ __html: thicken(item[props.modelKeys.label]) }}></div>
+                            <div className='multi-select-item-label' dangerouslySetInnerHTML={{ __html: props.enableSearch ? htmlThicken(item[props.modelKeys.label], keyword) : item[props.modelKeys.label] }}></div>
                             {props.modelKeys.description && item[props.modelKeys.description] &&
                                 <div className='multi-select-item-description'>
                                     {item[props.modelKeys.description]}
